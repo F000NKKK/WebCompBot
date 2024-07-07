@@ -1,0 +1,21 @@
+﻿@page
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@model LogoutModel
+@{
+    ViewData["Title"] = "Log out Page"; // Установка заголовка страницы
+}
+<form method='post' action='/Logout' asp-antiforgery="true">
+    <div class="container" style="width: 600px; height: 400px;">
+        <div class="row">
+            <div class="col-md-12 col-md-offset-1 text-center">
+                <div class="form-group">
+                    <label for="firstName">Are you sure you want to get out?</label>
+                </div>
+                <div class="form-group">
+                    <input type='submit' value='Log Out' class="btn btn-primary" style="height: 40px; width: 100%; margin-top: 20px; color: #ffffff; background-color: #770f0f" />
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+

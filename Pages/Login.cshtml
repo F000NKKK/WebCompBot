@@ -1,0 +1,26 @@
+﻿@page
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@model LoggingModel
+@{
+    ViewData["Title"] = "Logging Page"; // Установка заголовка страницы
+}
+<form method='post' action='/Login' asp-antiforgery="true">
+    <div class="container" style="width: 600px; height: 400px;">
+        <div class="row">
+            <div class="col-md-12 col-md-offset-1 text-center">
+                <div class="form-group">
+                    <label for="Username">Username:</label>
+                    <input type="text" asp-for="LoggedInUser.Username" placeholder="Username" class="form-control text-center" />
+                </div>
+                <div class="form-group">
+                    <label for="Password">Password:</label>
+                    <input type="password" asp-for="LoggedInUser.Password" placeholder="Password" class="form-control text-center" />
+                </div>
+                <div class="form-group">
+                    <input type='submit' value='Login' class="btn btn-primary" style="height: 40px; width: 100%; margin-top: 20px;" />
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
