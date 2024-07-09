@@ -9,8 +9,9 @@ namespace WebCompBot.Pages
     public class IndexModel : PageModel
     {
         private readonly ILogger<IndexModel> _logger;  // Логгер для логирования сообщений
-        private readonly RabbitMqBackgroundService _rabbitMqService; // Поле для хранения сервиса RabbitMQ
-        public IndexModel(RabbitMqBackgroundService rabbitMqService, ILogger<IndexModel> logger)
+        private readonly IRabbitMqService _rabbitMqService; // Поле для хранения сервиса RabbitMQ
+
+        public IndexModel(IRabbitMqService rabbitMqService, ILogger<IndexModel> logger)
         {
             _rabbitMqService = rabbitMqService; // Инициализация поля сервиса RabbitMQ
             _logger = logger; // Инициализация логгера
@@ -25,7 +26,7 @@ namespace WebCompBot.Pages
             public string Id { get; set; } = string.Empty; // Идентификатор сообщения
             public string Content { get; set; } = string.Empty; // Содержимое сообщения
             public string MessageCurrentTime { get; set; } = string.Empty; // Время отправки сообщения
-            public Boolean IsUserMessage { get; set; } = true; // Флаг User/Bot, True/False соответственно
+            public bool IsUserMessage { get; set; } = true; // Флаг User/Bot, True/False соответственно
         }
 
         public List<Message> MessageHistory { get; set; } = new List<Message>(); // История сообщений
@@ -92,7 +93,8 @@ namespace WebCompBot.Pages
                     {
                         Content = MessageOnU.message,
                         Id = newId,
-                        MessageCurrentTime = DateTime.Now.ToString("dd:MM:yyyy HH:mm:ss")
+                        MessageCurrentTime = DateTime.Now.ToString("dd:MM:yyyy HH:mm:ss"),
+                        IsUserMessage = true // Установите значение IsUserMessage как true для новых сообщений пользователя
                     };
 
                     MessageHistory.Add(sendObject); // Добавление нового сообщения в историю
@@ -100,12 +102,12 @@ namespace WebCompBot.Pages
                     try
                     {
                         // Отправляем объект в очередь PreProcessor
-                        _rabbitMqService.SendMessageToQueue(message: JsonSerializer.Serialize(sendObject));
-                        _logger.Log(LogLevel.Information, $"Сообщение отправлено в очередь PreProcessor с ID '{sendObject.Id}' для пользователя '{username}'.");
+                        _rabbitMqService.SendMessageToQueue(JsonSerializer.Serialize(sendObject));
+                        _logger.LogInformation($"Сообщение отправлено в очередь PreProcessor с ID '{sendObject.Id}' для пользователя '{username}'.");
                     }
                     catch (Exception ex)
                     {
-                        _logger.Log(LogLevel.Error, ex, "Ошибка при отправке сообщения в очередь RabbitMQ.");
+                        _logger.LogError(ex, "Ошибка при отправке сообщения в очередь RabbitMQ.");
                         return RedirectToPage(); // Перенаправление на ту же страницу в случае ошибки
                     }
 
@@ -115,11 +117,11 @@ namespace WebCompBot.Pages
                     {
                         // Сохранение обновленной истории чата в файл
                         System.IO.File.WriteAllText(chatHistoryPath, JsonSerializer.Serialize(chatHistory));
-                        _logger.Log(LogLevel.Information, $"История чата обновлена для пользователя '{username}'.");
+                        _logger.LogInformation($"История чата обновлена для пользователя '{username}'.");
                     }
                     catch (Exception ex)
                     {
-                        _logger.Log(LogLevel.Error, ex, "Ошибка при сохранении истории чата в файл.");
+                        _logger.LogError(ex, "Ошибка при сохранении истории чата в файл.");
                     }
 
                     return RedirectToPage(); // Перенаправление на ту же страницу после успешной отправки сообщения
@@ -131,6 +133,7 @@ namespace WebCompBot.Pages
             return RedirectToPage("/Login"); // Перенаправление на страницу логина, если пользователь не аутентифицирован
         }
     }
-        // Класс для представления данных сообщения, введенного пользователем
-        public record class MessageOnU(string message);
+
+    // Класс для представления данных сообщения, введенного пользователем
+    public record class MessageOnU(string message);
 }

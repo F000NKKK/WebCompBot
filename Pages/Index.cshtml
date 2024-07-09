@@ -31,7 +31,7 @@
                     else
                     {
                         <div class="message-left">
-                            @if (Model.MessageHistory.FirstOrDefault(MH => MH.Id == message.Id.Split("#")[0]) != null)
+                            @if ((Model.MessageHistory.FirstOrDefault(MH => MH.Id == message.Id.Split("#")[0]) != null) && (message.Id.Split("~")[1] == "0"))
                             {
                                 <b>Ваш запрос:</b><br>
                                 <div style="margin-left: 20px;">
@@ -45,9 +45,18 @@
                                     @(message.MessageCurrentTime.Substring(10, 6)) <!-- Извлечение времени -->
                                 </div>
                             }
+                            else if ((Model.MessageHistory.FirstOrDefault(MH => MH.Id == message.Id.Split("#")[0]) != null))
+                            {
+                                <div style="margin-left: 20px;">
+                                    @message.Content
+                                </div>
+                                <div class="time-box">
+                                    @(message.MessageCurrentTime.Substring(10, 6)) <!-- Извлечение времени -->
+                                </div>
+                            }
                             else
                             {
-                                    <b style="color: #000000">ERROR: Not Found</b>
+                                <b style="color: #000000">ERROR: Not Found</b>
                             }
                         </div>
                     }

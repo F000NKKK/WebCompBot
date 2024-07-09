@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.SignalR;
 using NLog;
 using NLog.Web;
 using WebCompBot.RabbitMq;
@@ -25,8 +26,21 @@ namespace WebCompBot
                 builder.Logging.AddNLogWeb();
 
                 builder.Services.AddRazorPages();
-                builder.Services.AddSingleton<RabbitMqBackgroundService>();
-                builder.Services.AddHostedService<RabbitMqBackgroundService>(); // Регистрация фонового сервиса RabbitMQ
+
+                // Регистрация IRabbitMqService как Singleton
+                builder.Services.AddSingleton<IRabbitMqService, RabbitMqBackgroundService>();
+
+                // Регистрация RabbitMqBackgroundService как HostedService
+                builder.Services.AddHostedService<RabbitMqBackgroundService>(provider =>
+                {
+                    var hubContext = provider.GetRequiredService<IHubContext<ChatHub>>();
+                    var logger = provider.GetRequiredService<ILogger<RabbitMqBackgroundService>>();
+                    var environment = provider.GetRequiredService<IWebHostEnvironment>();
+                    var signalRService = provider.GetRequiredService<ISignalRService>();
+                    return new RabbitMqBackgroundService(hubContext, logger, environment, signalRService);
+                });
+
+                // Регистрация SignalRService как Singleton
                 builder.Services.AddSingleton<ISignalRService, SignalRService>();
 
                 builder.Services.AddSignalR(); // Добавление SignalR

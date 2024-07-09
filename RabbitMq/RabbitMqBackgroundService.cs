@@ -5,27 +5,32 @@ using System.Text.Json; // Предоставляет методы для сер
 using NLog; // Пространство имен для работы с NLog
 using ILogger = NLog.ILogger; // Уточните, что это NLog.ILogger
 using WebCompBot.SignalR;
+using Microsoft.AspNetCore.SignalR;
 
 namespace WebCompBot.RabbitMq
 {
-    public class RabbitMqBackgroundService : BackgroundService, IRabbitMqService, IRabbitMqBackgroundService
+    public class RabbitMqBackgroundService : BackgroundService, IRabbitMqService
     {
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger(); // Создание экземпляра логгера
 
         private readonly IConnection _connection; // Поле для хранения соединения с RabbitMQ
         private readonly IModel _channel; // Поле для хранения канала для общения с RabbitMQ
-        private readonly ISignalRService _signalRBackgroundService;
+        private readonly ISignalRService _signalRService;
 
         private const string PreProcessorQueueName = "PreProcessorQueue"; // Константа для имени очереди PreProcessor
         private const string FromPostProcessor = "WebCompBotQueue"; // Константа для имени очереди PostProcessor
         private const string FilePath = "uData/chatHistory.json"; // Константа для пути к файлу с историей чата
 
         // Конструктор класса
-        public RabbitMqBackgroundService()
+        public RabbitMqBackgroundService(IHubContext<ChatHub> hubContext,
+        ILogger<RabbitMqBackgroundService> logger, // Исправлено на ILogger<RabbitMqBackgroundService>
+        IWebHostEnvironment environment,
+        ISignalRService signalRService)
         {
             var factory = new ConnectionFactory() { HostName = "localhost" }; // Создание фабрики соединений с указанием хоста
             _connection = factory.CreateConnection(); // Создание соединения
             _channel = _connection.CreateModel(); // Создание канала
+            _signalRService = signalRService ?? throw new ArgumentNullException(nameof(signalRService));
 
             // Объявление очереди PreProcessorQueue
             _channel.QueueDeclare(queue: PreProcessorQueueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
@@ -83,14 +88,14 @@ namespace WebCompBot.RabbitMq
                         // Обработка сообщения
                         Logger.Info($"Обработка сообщения с ID: {deserializedMessage.Id}");
 
-                        await _signalRBackgroundService.SendMessageAsync(deserializedMessage);
+                        _signalRService.SendMessageAsync(deserializedMessage);
 
                         await AcknowledgeMessage(ea.DeliveryTag);
                     }
                     catch (Exception ex)
                     {
                         // Обработка исключений при обработке сообщения
-                        Logger.Error(ex, $"Произошла ошибка при обработке сообщения с ID: {deserializedMessage.Id}");
+                        Logger.Error(ex, $"Произошла ошибка при обработке сообщения с ID: {deserializedMessage.Id}\n");
 
                         // Отклонение сообщения и его повторная отправка в очередь
                         await RejectMessage(ea.DeliveryTag, true);
