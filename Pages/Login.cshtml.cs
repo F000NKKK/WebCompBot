@@ -1,37 +1,58 @@
-using Microsoft.AspNetCore.Mvc; // Пространство имен для создания контроллеров и действий
-using Microsoft.AspNetCore.Mvc.RazorPages; // Пространство имен для работы с Razor Pages
-using System.Text.Json; // Пространство имен для работы с JSON
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace WebCompBot.Pages
 {
     public class LoggingModel : PageModel
     {
+        private readonly ILogger<LoggingModel> _logger;
+
         [BindProperty]
         public LoggedInUser LoggedInUser { get; set; } = new("", "");
+
+        public LoggingModel(ILogger<LoggingModel> logger)
+        {
+            _logger = logger;
+        }
 
         // Метод для обработки POST-запросов
         public void OnPost()
         {
-            // Чтение пользователей из файла logging.json.
-            var users = JsonSerializer.Deserialize<List<User>>(System.IO.File.ReadAllText("uData/logging.json"));
+            _logger.LogInformation("Получен запрос на вход для пользователя: {Username}", LoggedInUser.Username);
 
-            // Проверка наличия пользователя с указанными именем и паролем.
-            var user = users.FirstOrDefault(u => u.Username == LoggedInUser.Username && u.Password == LoggedInUser.Password);
-
-            if (user != null)
+            try
             {
-                Response.Cookies.Append(key: "UserLoginCookie", value: LoggedInUser.Username); // Установка cookie для аутентифицированного пользователя.
-                Response.Redirect("/"); // Перенаправление на главную страницу.
+                var users = JsonSerializer.Deserialize<List<User>>(System.IO.File.ReadAllText("uData/logging.json"));
+
+                var user = users.FirstOrDefault(u => u.Username == LoggedInUser.Username && u.Password == LoggedInUser.Password);
+
+                if (user != null)
+                {
+                    Response.Cookies.Append(key: "UserLoginCookie", value: LoggedInUser.Username);
+                    _logger.LogInformation("Пользователь {Username} успешно аутентифицирован.", LoggedInUser.Username);
+                    Response.Redirect("/");
+                }
+                else
+                {
+                    _logger.LogWarning("Аутентификация не удалась для пользователя: {Username}", LoggedInUser.Username);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Произошла ошибка при обработке запроса на вход для пользователя: {Username}", LoggedInUser.Username);
             }
         }
     }
 
-    // Класс для представления пользователя.
+    // Класс для представления данных пользователя
     public record class LoggedInUser(string Username, string Password) { }
 
     public class User
-    { 
-        public required string Username { get; set;}
-        public required string Password { get; set;}
+    {
+        public required string Username { get; set; }
+        public required string Password { get; set; }
     }
 }
+

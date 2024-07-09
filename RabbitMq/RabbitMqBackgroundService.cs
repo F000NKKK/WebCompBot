@@ -2,14 +2,15 @@
 using RabbitMQ.Client.Events; // Используется для обработки событий, связанных с RabbitMQ
 using System.Text; // Предоставляет классы для работы с кодировками
 using System.Text.Json; // Предоставляет методы для сериализации и десериализации JSON
-using WebCompBot.RabbitMq; // Пространство имен для работы с RabbitMQ в проекте WebCompBot
-
-// Определяет класс, который наследуется от BackgroundService и реализует интерфейсы IRabbitMqService и IRabbitMqBackgroundService
+using NLog; // Пространство имен для работы с NLog
+using ILogger = NLog.ILogger; // Уточните, что это NLog.ILogger
 
 namespace WebCompBot.RabbitMq
 {
     public class RabbitMqBackgroundService : BackgroundService, IRabbitMqService, IRabbitMqBackgroundService
     {
+        private static readonly ILogger Logger = LogManager.GetCurrentClassLogger(); // Создание экземпляра логгера
+
         private readonly IConnection _connection; // Поле для хранения соединения с RabbitMQ
         private readonly IModel _channel; // Поле для хранения канала для общения с RabbitMQ
 
@@ -37,19 +38,19 @@ namespace WebCompBot.RabbitMq
         {
             var body = Encoding.UTF8.GetBytes(message); // Кодирование сообщения в байты
             _channel.BasicPublish(exchange: "", routingKey: PreProcessorQueueName, basicProperties: null, body: body); // Публикация сообщения в очередь
-            Console.WriteLine($"[x] Отправлено {message} в {PreProcessorQueueName}"); // Логирование отправленного сообщения
+            Logger.Info("Сообщение отправлено в PreProcessorQueue"); // Логирование отправки сообщения
         }
 
-        // Метод для подтверждения обработки сообщения
-        public void AcknowledgeMessage(ulong deliveryTag)
+        public async Task AcknowledgeMessage(ulong deliveryTag)
         {
-            _channel.BasicAck(deliveryTag, false); // Подтверждение обработки сообщения
+            await Task.Run(() => _channel.BasicAck(deliveryTag, false));
+            Logger.Info($"Сообщение с deliveryTag {deliveryTag} подтверждено"); // Логирование подтверждения сообщения
         }
 
-        // Метод для отклонения сообщения
-        public void RejectMessage(ulong deliveryTag, bool requeue)
+        public async Task RejectMessage(ulong deliveryTag, bool requeue)
         {
-            _channel.BasicNack(deliveryTag, false, requeue); // Отклонение сообщения с возможностью его повторной отправки в очередь
+            await Task.Run(() => _channel.BasicReject(deliveryTag, requeue));
+            Logger.Warn($"Сообщение с deliveryTag {deliveryTag} отклонено (requeue={requeue})"); // Логирование отклонения сообщения
         }
 
         // Переопределение метода ExecuteAsync для выполнения задач в фоновом режиме
@@ -70,35 +71,36 @@ namespace WebCompBot.RabbitMq
                 var message = Encoding.UTF8.GetString(body); // Декодирование сообщения
                 var deserializedMessage = JsonSerializer.Deserialize<Message>(message); // Десериализация сообщения в объект Message
 
-                Console.WriteLine($"Получено сообщение: {message}"); // Логирование полученного сообщения
+                var flag = (deserializedMessage.Content != null) ? "NotNull" : "Null";
+                Logger.Info($"\nПолучено сообщение:\nId: {deserializedMessage.Id}\nContent: {flag}\nMessageCurrentTime: {deserializedMessage.MessageCurrentTime}"); // Логирование получения сообщения
 
                 try
                 {
                     try
                     {
+                        // Обработка сообщения
+                        Logger.Info($"Обработка сообщения с ID: {deserializedMessage.Id}");
 
-                        // Логирование и подтверждение обработки сообщения
-                        Console.WriteLine($"[x] Обработано сообщение: {JsonSerializer.Serialize(message)}");
-                        AcknowledgeMessage(ea.DeliveryTag);
+                        await AcknowledgeMessage(ea.DeliveryTag);
                     }
                     catch (Exception ex)
                     {
                         // Обработка исключений при обработке сообщения
-                        Console.WriteLine($"Произошла ошибка: {ex.Message}");
+                        Logger.Error(ex, $"Произошла ошибка при обработке сообщения с ID: {deserializedMessage.Id}");
 
                         // Отклонение сообщения и его повторная отправка в очередь
-                        RejectMessage(ea.DeliveryTag, true);
+                        await RejectMessage(ea.DeliveryTag, true);
                     }
                 }
                 catch (TaskCanceledException ex)
                 {
                     // Обработка отмены задачи
-                    Console.WriteLine($"Задача отменена: {ex.Message}");
+                    Logger.Warn(ex, "Задача отменена");
                 }
                 catch (Exception ex)
                 {
                     // Обработка других исключений
-                    Console.WriteLine($"Произошла ошибка: {ex.Message}");
+                    Logger.Error(ex, "Произошла ошибка");
                 }
             };
 
@@ -113,6 +115,7 @@ namespace WebCompBot.RabbitMq
         {
             _channel?.Close(); // Закрытие канала
             _connection?.Close(); // Закрытие соединения
+            Logger.Info("Ресурсы RabbitMQ закрыты"); // Логирование освобождения ресурсов
             base.Dispose(); // Вызов базового метода Dispose
         }
 

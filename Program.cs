@@ -1,10 +1,7 @@
-using System.Collections.Concurrent;
-using System.Net.WebSockets;
-using System.Text.Json;
-using Azure.Core;
-using Microsoft.Extensions.FileProviders;
-using static WebCompBot.Pages.IndexModel;
 using WebCompBot.RabbitMq;
+using NLog;
+using NLog.Web;
+using NLog.Extensions.Logging;
 
 namespace WebCompBot
 {
@@ -12,46 +9,69 @@ namespace WebCompBot
     {
         public static void Main(string[] args)
         {
-            var builder = WebApplication.CreateBuilder(args);
+            // Настройка NLog
+            var logger = LogManager.Setup()
+                .LoadConfigurationFromFile("nlog.config") // Загрузка конфигурации из файла
+                .GetCurrentClassLogger();
 
-            builder.Services.AddRazorPages();
-            builder.Services.AddSingleton<RabbitMqBackgroundService>();
-            builder.Services.AddHostedService<RabbitMqBackgroundService>();
+            try
+            {
+                logger.Debug("Запуск приложения");
 
-            builder.Services.AddSession();
+                var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddAuthentication("CookieAuth")
-                .AddCookie("CookieAuth", config =>
+                // Добавление NLog в качестве провайдера логирования
+                builder.Logging.ClearProviders();
+                builder.Logging.AddNLog();
+
+                builder.Services.AddRazorPages();
+                builder.Services.AddSingleton<RabbitMqBackgroundService>();
+                builder.Services.AddHostedService<RabbitMqBackgroundService>(); // Регистрация фонового сервиса RabbitMQ
+
+                builder.Services.AddSession();
+
+                builder.Services.AddAuthentication("CookieAuth")
+                    .AddCookie("CookieAuth", config =>
+                    {
+                        config.Cookie.Name = "UserLoginCookie";
+                        config.LoginPath = "/Login";
+                    });
+
+                var app = builder.Build();
+
+                if (!app.Environment.IsDevelopment())
                 {
-                    config.Cookie.Name = "UserLoginCookie";
-                    config.LoginPath = "/Login";
+                    app.UseExceptionHandler("/Error");
+                    app.UseHsts();
+                }
+
+                app.UseHttpsRedirection();
+                app.UseStaticFiles();
+
+                app.UseRouting();
+                app.UseAuthentication();
+                app.UseSession();
+
+                app.MapGet("/UpdateTime", async context =>
+                {
+                    var dateTimeNow = DateTime.Now.ToString("HH:mm:ss");
+                    await context.Response.WriteAsJsonAsync(new { time = dateTimeNow });
                 });
 
-            var app = builder.Build();
+                app.MapRazorPages();
+                app.MapControllers();
 
-            if (!app.Environment.IsDevelopment())
-            {
-                app.UseExceptionHandler("/Error");
-                app.UseHsts();
+                app.Run();
             }
-
-            app.UseHttpsRedirection();
-            app.UseStaticFiles();
-
-            app.UseRouting();
-            app.UseAuthentication();
-            app.UseSession();
-
-            app.MapGet("/UpdateTime", async context =>
+            catch (Exception ex)
             {
-                var dateTimeNow = DateTime.Now.ToString("HH:mm:ss");
-                await context.Response.WriteAsJsonAsync(new { time = dateTimeNow });
-            });
-
-            app.MapRazorPages();
-            app.MapControllers();
-
-            app.Run();
+                logger.Error(ex, "Произошла ошибка при запуске приложения");
+                throw;
+            }
+            finally
+            {
+                LogManager.Shutdown();
+            }
         }
     }
 }

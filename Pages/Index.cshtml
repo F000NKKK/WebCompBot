@@ -4,6 +4,7 @@
 @{
     ViewData["Title"] = "Chat Page";
 }
+@using System.Globalization
 
 <form method="post" asp-antiforgery="true">
     <div class="text-center">
@@ -13,7 +14,7 @@
         <div>
             <h3>Message history</h3>
             <div id="messageHistory" class="message-history">
-                @foreach (var message in Model.MessageHistory)
+                @foreach (var message in Model.MessageHistory.OrderBy(m => DateTime.ParseExact(m.MessageCurrentTime, "MM:dd:yyyy HH:mm:ss", CultureInfo.InvariantCulture)))
                 {
                     @if (message.IsUserMessage)
                     {
@@ -27,17 +28,24 @@
                     else
                     {
                         <div class="message-left">
-                            <b>Ваш запрос:</b><br>
-                            <div style="margin-left: 20px;">
-                                @Model.MessageHistory[Convert.ToInt32(message.Id.Split("#")[0].Split("$")[0])].Content
-                            </div>
-                            <br><b>Ответ:</b><br>
-                            <div style="margin-left: 20px;">
-                                @message.Content
-                            </div>
-                            <div class="time-box">
-                                @(Model.MessageHistory[Convert.ToInt32(message.Id.Split("#")[1].Split("$")[0])].MessageCurrentTime.Substring(10, 6)) <!-- Извлечение времени -->
-                            </div>
+                            @if (Model.MessageHistory.FirstOrDefault(MH => MH.Id == message.Id.Split("#")[0]) != null)
+                            {
+                                <b>Ваш запрос:</b><br>
+                                <div style="margin-left: 20px;">
+                                    @Model.MessageHistory.FirstOrDefault(MH => MH.Id == message.Id.Split("#")[0]).Content
+                                </div>
+                                <br><b>Ответ:</b><br>
+                                <div style="margin-left: 20px;">
+                                    @message.Content
+                                </div>
+                                <div class="time-box">
+                                    @(message.MessageCurrentTime.Substring(10, 6)) <!-- Извлечение времени -->
+                                </div>
+                            }
+                            else
+                            {
+                                    <b style="color: #000000">ERROR: Not Found</b>
+                            }
                         </div>
                     }
                 }

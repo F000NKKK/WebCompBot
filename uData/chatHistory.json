@@ -7,7 +7,7 @@
       "IsUserMessage": true
     },
     {
-      "Id": "0$guest#1$Bot",
+      "Id": "0$guest#1$Bot~1",
       "Content": "Hello, Guest! \u003C3",
       "MessageCurrentTime": "09:07:2024 06:40:00",
       "IsUserMessage": false
@@ -21,7 +21,7 @@
       "IsUserMessage": true
     },
     {
-      "Id": "0$F000NK#1$Bot",
+      "Id": "0$F000NK#1$Bot~1",
       "Content": "Hello, F000NK! \u003C3",
       "MessageCurrentTime": "09:07:2024 06:41:00",
       "IsUserMessage": false

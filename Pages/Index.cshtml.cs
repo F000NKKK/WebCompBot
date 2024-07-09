@@ -2,11 +2,20 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Text.Json;
 using WebCompBot.RabbitMq;
+using ILogger = NLog.ILogger;
 
 namespace WebCompBot.Pages
 {
     public class IndexModel : PageModel
     {
+        private readonly ILogger<IndexModel> _logger;  // Логгер для логирования сообщений
+        private readonly RabbitMqBackgroundService _rabbitMqService; // Поле для хранения сервиса RabbitMQ
+        public IndexModel(RabbitMqBackgroundService rabbitMqService, ILogger<IndexModel> logger)
+        {
+            _rabbitMqService = rabbitMqService; // Инициализация поля сервиса RabbitMQ
+            _logger = logger; // Инициализация логгера
+        }
+
         [BindProperty]
         public MessageOnU MessageOnU { get; set; } = new(""); // Свойство для привязки данных формы
 
@@ -17,11 +26,6 @@ namespace WebCompBot.Pages
             public string Content { get; set; } = string.Empty; // Содержимое сообщения
             public string MessageCurrentTime { get; set; } = string.Empty; // Время отправки сообщения
             public Boolean IsUserMessage { get; set; } = true; // Флаг User/Bot, True/False соответственно
-        }
-        private readonly RabbitMqBackgroundService _rabbitMqService; // Поле для хранения сервиса RabbitMQ
-        public IndexModel(RabbitMqBackgroundService rabbitMqService)
-        {
-            _rabbitMqService = rabbitMqService; // Инициализация поля сервиса RabbitMQ
         }
 
         public List<Message> MessageHistory { get; set; } = new List<Message>(); // История сообщений
@@ -35,11 +39,20 @@ namespace WebCompBot.Pages
                 var chatHistoryPath = Path.Combine(Environment.CurrentDirectory, "uData/chatHistory.json");
                 if (System.IO.File.Exists(chatHistoryPath))
                 {
-                    var chatHistory = JsonSerializer.Deserialize<Dictionary<string, List<Message>>>(System.IO.File.ReadAllText(chatHistoryPath)); // Чтение истории чата из файла
-
-                    if (chatHistory != null && chatHistory.ContainsKey(username))
+                    try
                     {
-                        MessageHistory = chatHistory[username]; // Загрузка истории сообщений пользователя
+                        var chatHistory = JsonSerializer.Deserialize<Dictionary<string, List<Message>>>(System.IO.File.ReadAllText(chatHistoryPath)); // Чтение истории чата из файла
+
+                        if (chatHistory != null && chatHistory.ContainsKey(username))
+                        {
+                            MessageHistory = chatHistory[username]; // Загрузка истории сообщений пользователя
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Ошибка при чтении истории чата из файла.");
+                        // Опционально: Можно установить MessageHistory как пустой список или показать сообщение об ошибке пользователю
+                        MessageHistory = new List<Message>();
                     }
                 }
             }
@@ -50,7 +63,7 @@ namespace WebCompBot.Pages
         }
 
         // Метод для обработки POST-запросов
-        public async Task<IActionResult> OnPost()
+        public async Task<IActionResult> OnPostAsync()
         {
             var username = Request.Cookies["UserLoginCookie"]; // Получение имени пользователя из cookie
             if (!string.IsNullOrEmpty(username))
@@ -84,13 +97,32 @@ namespace WebCompBot.Pages
 
                     MessageHistory.Add(sendObject); // Добавление нового сообщения в историю
 
-                    // Отправляем объект в очередь PreProcessor
-                    _rabbitMqService.SendMessageToQueue(message: JsonSerializer.Serialize(sendObject));
+                    try
+                    {
+                        // Отправляем объект в очередь PreProcessor
+                        _rabbitMqService.SendMessageToQueue(message: JsonSerializer.Serialize(sendObject));
+                        _logger.Log(LogLevel.Information, $"Сообщение отправлено в очередь PreProcessor с ID '{sendObject.Id}' для пользователя '{username}'.");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Log(LogLevel.Error, ex, "Ошибка при отправке сообщения в очередь RabbitMQ.");
+                        return RedirectToPage(); // Перенаправление на ту же страницу в случае ошибки
+                    }
 
                     chatHistory[username] = MessageHistory; // Обновление истории чата пользователя
-                    System.IO.File.WriteAllText(chatHistoryPath, JsonSerializer.Serialize(chatHistory)); // Сохранение обновленной истории чата в файл
 
-                    return RedirectToPage(); // Перенаправление на ту же страницу
+                    try
+                    {
+                        // Сохранение обновленной истории чата в файл
+                        System.IO.File.WriteAllText(chatHistoryPath, JsonSerializer.Serialize(chatHistory));
+                        _logger.Log(LogLevel.Information, $"История чата обновлена для пользователя '{username}'.");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Log(LogLevel.Error, ex, "Ошибка при сохранении истории чата в файл.");
+                    }
+
+                    return RedirectToPage(); // Перенаправление на ту же страницу после успешной отправки сообщения
                 }
 
                 return RedirectToPage(); // Перенаправление на ту же страницу, если сообщение пустое
@@ -99,7 +131,6 @@ namespace WebCompBot.Pages
             return RedirectToPage("/Login"); // Перенаправление на страницу логина, если пользователь не аутентифицирован
         }
     }
-
-    // Класс для представления данных сообщения, введенного пользователем
-    public record class MessageOnU(string message);
+        // Класс для представления данных сообщения, введенного пользователем
+        public record class MessageOnU(string message);
 }

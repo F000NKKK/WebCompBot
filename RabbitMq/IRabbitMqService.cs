@@ -5,9 +5,9 @@
         // Метод для отправки сообщения в очередь
         void SendMessageToQueue(string message);
         // Метод для подтверждения обработки сообщения
-        void AcknowledgeMessage(ulong deliveryTag);
-        // Метод для отклонения сообщения
-        void RejectMessage(ulong deliveryTag, bool requeue);
+        Task AcknowledgeMessage(ulong deliveryTag);
+        // Асинхронный метод для отклонения сообщения
+        Task RejectMessage(ulong deliveryTag, bool requeue);
     }
 }
 
