@@ -31,13 +31,19 @@ body {
     margin: 0 auto 20px;
 }
 
-.message-left {
+.message-left, .message-right {
     padding: 10px;
     margin: 5px 0;
     border-radius: 10px;
     display: inline-block;
     max-width: 80%;
     clear: both;
+    position: relative; /* Для позиционирования времени внутри сообщения */
+    font-size: 1em;
+    padding-bottom: 20px; /* Добавление отступа снизу */
+}
+
+.message-left {
     float: left;
     text-align: left;
     background-color: #02bd02;
@@ -45,17 +51,21 @@ body {
 }
 
 .message-right {
-    padding: 10px;
-    margin: 5px 0;
-    border-radius: 10px;
-    display: inline-block;
-    max-width: 80%;
-    clear: both;
     float: right;
     text-align: right;
     background-color: #0277bd;
     color: white;
 }
+
+.time-box {
+    white-space: nowrap;
+    font-size: 0.75em;
+    position: absolute;
+    bottom: 5px;
+    right: 10px;
+}
+
+
 
 .form-group {
     display: flex;

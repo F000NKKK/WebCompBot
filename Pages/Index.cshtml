@@ -8,21 +8,36 @@
 <form method="post" asp-antiforgery="true">
     <div class="text-center">
         <h1 class="display-4">Welcome</h1>
-        <p id="currentTime">The time on the server is @Model.CurrentTime</p>
+        <p id="currentTime">The time on the server is @DateTime.Now.ToString("HH:mm:ss")</p>
 
         <div>
             <h3>Message history</h3>
             <div id="messageHistory" class="message-history">
                 @foreach (var message in Model.MessageHistory)
                 {
-                    <div class="message-right">
-                        @message.Content
-                    </div>
-
-                    @if (message.AnswerContent != string.Empty)
+                    @if (message.IsUserMessage)
+                    {
+                        <div class="message-right">
+                            @message.Content
+                            <div class="time-box">
+                                @(message.MessageCurrentTime.Substring(10, 6)) <!-- Извлечение времени -->
+                            </div>
+                        </div>
+                    }
+                    else
                     {
                         <div class="message-left">
-                            @Html.Raw(message.AnswerContent)
+                            <b>Ваш запрос:</b><br>
+                            <div style="margin-left: 20px;">
+                                @Model.MessageHistory[Convert.ToInt32(message.Id.Split("#")[0].Split("$")[0])].Content
+                            </div>
+                            <br><b>Ответ:</b><br>
+                            <div style="margin-left: 20px;">
+                                @message.Content
+                            </div>
+                            <div class="time-box">
+                                @(Model.MessageHistory[Convert.ToInt32(message.Id.Split("#")[1].Split("$")[0])].MessageCurrentTime.Substring(10, 6)) <!-- Извлечение времени -->
+                            </div>
                         </div>
                     }
                 }

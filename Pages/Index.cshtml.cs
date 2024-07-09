@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Text.Json;
+using WebCompBot.RabbitMq;
 
 namespace WebCompBot.Pages
 {
@@ -9,25 +10,21 @@ namespace WebCompBot.Pages
         [BindProperty]
         public MessageOnU MessageOnU { get; set; } = new(""); // Свойство для привязки данных формы
 
-        private readonly RabbitMqBackgroundService _rabbitMqService; // Поле для хранения сервиса RabbitMQ
-
-        public IndexModel(RabbitMqBackgroundService rabbitMqService)
-        {
-            _rabbitMqService = rabbitMqService; // Инициализация поля сервиса RabbitMQ
-        }
-
         // Класс для представления сообщения.
         public class Message
         {
             public string Id { get; set; } = string.Empty; // Идентификатор сообщения
             public string Content { get; set; } = string.Empty; // Содержимое сообщения
-            public string AnswerContent { get; set; } = string.Empty; // Содержимое ответа
+            public string MessageCurrentTime { get; set; } = string.Empty; // Время отправки сообщения
+            public Boolean IsUserMessage { get; set; } = true; // Флаг User/Bot, True/False соответственно
+        }
+        private readonly RabbitMqBackgroundService _rabbitMqService; // Поле для хранения сервиса RabbitMQ
+        public IndexModel(RabbitMqBackgroundService rabbitMqService)
+        {
+            _rabbitMqService = rabbitMqService; // Инициализация поля сервиса RabbitMQ
         }
 
         public List<Message> MessageHistory { get; set; } = new List<Message>(); // История сообщений
-
-        // Свойство для текущего времени
-        public string CurrentTime { get; set; } = DateTime.Now.ToString("HH:mm:ss");
 
         // Метод для обработки GET-запросов
         public void OnGet()
@@ -45,9 +42,6 @@ namespace WebCompBot.Pages
                         MessageHistory = chatHistory[username]; // Загрузка истории сообщений пользователя
                     }
                 }
-
-                // Обновление времени на странице
-                CurrentTime = DateTime.Now.ToString("HH:mm:ss");
             }
             else
             {
@@ -84,7 +78,8 @@ namespace WebCompBot.Pages
                     var sendObject = new Message
                     {
                         Content = MessageOnU.message,
-                        Id = newId
+                        Id = newId,
+                        MessageCurrentTime = DateTime.Now.ToString("dd:MM:yyyy HH:mm:ss")
                     };
 
                     MessageHistory.Add(sendObject); // Добавление нового сообщения в историю

@@ -4,6 +4,7 @@ using System.Text.Json;
 using Azure.Core;
 using Microsoft.Extensions.FileProviders;
 using static WebCompBot.Pages.IndexModel;
+using WebCompBot.RabbitMq;
 
 namespace WebCompBot
 {
