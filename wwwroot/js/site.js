@@ -49,13 +49,7 @@ if (typeof signalR === 'undefined') {
         const requestMessageId = message.id.split("#")[0].split("$")[0];
 
         let messageDiv = document.createElement('div');
-        if (message.isUserMessage) {
-            // Сообщение от пользователя
-            messageDiv.classList.add('message-right');
-            messageDiv.innerHTML = `<div style="margin-left: 20px;">${message.content}</div>
-            <div class="time-box">${message.messageCurrentTime.substring(10, 16)}</div>`;
-            messageHistoryElement.appendChild(messageDiv);
-        } else {
+        if (!message.isUserMessage) {
             // Сообщение от бота
             const requestMessageId = message.id.split("#")[0]; // Извлечение ID запроса из сообщения
             const isRequestMessage = message.id.split("~")[1] === "0"; // Проверка, является ли сообщение запросом
@@ -69,16 +63,16 @@ if (typeof signalR === 'undefined') {
                     if (isRequestMessage) {
                         // Если сообщение является запросом
                         messageDiv.innerHTML = `
-                        <b>Ваш запрос:</b><br>
-                        <div style="margin-left: 20px;">${requestMessageContent || 'Not Found'}</div>
-                        <br><b>Ответ:</b><br>
-                        <div style="margin-left: 20px;">${message.content}</div>
-                        <div class="time-box">${message.messageCurrentTime.substring(10, 16)}</div>`;
+                <b>Ваш запрос:</b><br>
+                <div style="margin-left: 20px;">${requestMessageContent || 'Not Found'}</div>
+                <br><b>Ответ:</b><br>
+                <div style="margin-left: 20px;">${message.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                <div class="time-box">${message.messageCurrentTime.substring(10, 16)}</div>`;
                     } else {
                         // Если сообщение не является запросом
                         messageDiv.innerHTML = `
-                        <div style="margin-left: 20px;">${message.content}</div>
-                        <div class="time-box">${message.messageCurrentTime.substring(10, 16)}</div>`;
+                <div style="margin-left: 20px;">${message.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                <div class="time-box">${message.messageCurrentTime.substring(10, 16)}</div>`;
                     }
 
                     messageHistoryElement.appendChild(messageDiv);
@@ -87,6 +81,7 @@ if (typeof signalR === 'undefined') {
                     console.error(`[ERROR] Не удалось получить содержимое сообщения запроса для requestMessageId: ${requestMessageId}, user: ${user}:`, error);
                 });
         }
+        scrollToBottom();
     }
 
     function scrollToBottom() {
