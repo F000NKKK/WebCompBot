@@ -4,9 +4,6 @@
 @{
     ViewData["Title"] = "Chat Page";
 }
-@{
-    ViewData["InitialMessages"] = Model.MessageHistory;
-}
 @using System.Globalization
 
 <form method="post" asp-antiforgery="true">
@@ -24,7 +21,7 @@
                         <div class="message-right">
                             @message.Content
                             <div class="time-box">
-                                @(message.MessageCurrentTime.Substring(10, 6)) <!-- Извлечение времени -->
+                                @(message.MessageCurrentTime.Substring(10, 6))
                             </div>
                         </div>
                     }
@@ -42,7 +39,7 @@
                                     @message.Content
                                 </div>
                                 <div class="time-box">
-                                    @(message.MessageCurrentTime.Substring(10, 6)) <!-- Извлечение времени -->
+                                    @(message.MessageCurrentTime.Substring(10, 6))
                                 </div>
                             }
                             else if ((Model.MessageHistory.FirstOrDefault(MH => MH.Id == message.Id.Split("#")[0]) != null))
@@ -51,7 +48,7 @@
                                     @message.Content
                                 </div>
                                 <div class="time-box">
-                                    @(message.MessageCurrentTime.Substring(10, 6)) <!-- Извлечение времени -->
+                                    @(message.MessageCurrentTime.Substring(10, 6))
                                 </div>
                             }
                             else

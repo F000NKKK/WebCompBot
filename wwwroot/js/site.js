@@ -52,9 +52,8 @@ if (typeof signalR === 'undefined') {
         if (message.isUserMessage) {
             // Сообщение от пользователя
             messageDiv.classList.add('message-right');
-            messageDiv.innerHTML = `
-        <div class="time-box">${message.messageCurrentTime.substring(10, 16)}</div> <!-- Извлечение времени -->
-    `;
+            messageDiv.innerHTML = `<div style="margin-left: 20px;">${message.content}</div>
+            <div class="time-box">${message.messageCurrentTime.substring(10, 16)}</div>`;
             messageHistoryElement.appendChild(messageDiv);
         } else {
             // Сообщение от бота
@@ -70,18 +69,16 @@ if (typeof signalR === 'undefined') {
                     if (isRequestMessage) {
                         // Если сообщение является запросом
                         messageDiv.innerHTML = `
-                    <b>Ваш запрос:</b><br>
-                    <div style="margin-left: 20px;">${requestMessageContent || 'Not Found'}</div>
-                    <br><b>Ответ:</b><br>
-                    <div style="margin-left: 20px;">${message.content}</div>
-                    <div class="time-box">${message.messageCurrentTime.substring(10, 16)}</div> <!-- Извлечение времени -->
-                `;
+                        <b>Ваш запрос:</b><br>
+                        <div style="margin-left: 20px;">${requestMessageContent || 'Not Found'}</div>
+                        <br><b>Ответ:</b><br>
+                        <div style="margin-left: 20px;">${message.content}</div>
+                        <div class="time-box">${message.messageCurrentTime.substring(10, 16)}</div>`;
                     } else {
                         // Если сообщение не является запросом
                         messageDiv.innerHTML = `
-                    <div style="margin-left: 20px;">${message.content}</div>
-                    <div class="time-box">${message.messageCurrentTime.substring(10, 16)}</div> <!-- Извлечение времени -->
-                `;
+                        <div style="margin-left: 20px;">${message.content}</div>
+                        <div class="time-box">${message.messageCurrentTime.substring(10, 16)}</div>`;
                     }
 
                     messageHistoryElement.appendChild(messageDiv);
@@ -90,34 +87,7 @@ if (typeof signalR === 'undefined') {
                     console.error(`[ERROR] Не удалось получить содержимое сообщения запроса для requestMessageId: ${requestMessageId}, user: ${user}:`, error);
                 });
         }
-
-
-        // Прокрутка в самый низ после добавления нового сообщения
     }
-
-    // Функция для инициализации начальной загрузки данных истории сообщений при загрузке страницы
-    function initializeMessageHistory(initialMessages) {
-        console.info('[INFO] Инициализация истории сообщений с начальными данными.');  // Логирование инициализации истории сообщений
-
-        if (!Array.isArray(initialMessages)) {
-            console.error('[ERROR] Данные сообщений не являются массивом.');  // Логирование ошибки некорректного формата данных
-            console.info('[INFO] Данные initialMessages:', initialMessages);
-            return;
-        }
-
-        initialMessages.forEach(item => {
-            console.info(`[INFO] Обработка сообщения. user: ${item.user}`);
-            if (item.user && item.message) {
-                addMessageToHistory(item.user, item.message);
-            } else {
-                console.error('[ERROR] Недопустимые данные сообщения. user:', item.user, 'message:', item.message);  // Логирование ошибки некорректных данных
-            }
-        });
-    }
-
-    // Пример вызова функции при загрузке страницы, если у вас есть начальные данные
-    const initialMessages = window.initialMessages || [];  // Добавил пустой массив по умолчанию
-    initializeMessageHistory(initialMessages);
 
     function scrollToBottom() {
         const messageHistory = document.getElementById("messageHistory");
