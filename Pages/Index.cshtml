@@ -4,6 +4,9 @@
 @{
     ViewData["Title"] = "Chat Page";
 }
+@{
+    ViewData["InitialMessages"] = Model.MessageHistory;
+}
 @using System.Globalization
 
 <form method="post" asp-antiforgery="true">

@@ -4,6 +4,7 @@ using System.Text; // Предоставляет классы для работ�
 using System.Text.Json; // Предоставляет методы для сериализации и десериализации JSON
 using NLog; // Пространство имен для работы с NLog
 using ILogger = NLog.ILogger; // Уточните, что это NLog.ILogger
+using WebCompBot.SignalR;
 
 namespace WebCompBot.RabbitMq
 {
@@ -13,6 +14,7 @@ namespace WebCompBot.RabbitMq
 
         private readonly IConnection _connection; // Поле для хранения соединения с RabbitMQ
         private readonly IModel _channel; // Поле для хранения канала для общения с RabbitMQ
+        private readonly ISignalRService _signalRBackgroundService;
 
         private const string PreProcessorQueueName = "PreProcessorQueue"; // Константа для имени очереди PreProcessor
         private const string FromPostProcessor = "WebCompBotQueue"; // Константа для имени очереди PostProcessor
@@ -80,6 +82,8 @@ namespace WebCompBot.RabbitMq
                     {
                         // Обработка сообщения
                         Logger.Info($"Обработка сообщения с ID: {deserializedMessage.Id}");
+
+                        await _signalRBackgroundService.SendMessageAsync(deserializedMessage);
 
                         await AcknowledgeMessage(ea.DeliveryTag);
                     }

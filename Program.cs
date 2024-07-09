@@ -1,7 +1,7 @@
-using WebCompBot.RabbitMq;
 using NLog;
 using NLog.Web;
-using NLog.Extensions.Logging;
+using WebCompBot.RabbitMq;
+using WebCompBot.SignalR;
 
 namespace WebCompBot
 {
@@ -22,12 +22,14 @@ namespace WebCompBot
 
                 // Добавление NLog в качестве провайдера логирования
                 builder.Logging.ClearProviders();
-                builder.Logging.AddNLog();
+                builder.Logging.AddNLogWeb();
 
                 builder.Services.AddRazorPages();
                 builder.Services.AddSingleton<RabbitMqBackgroundService>();
                 builder.Services.AddHostedService<RabbitMqBackgroundService>(); // Регистрация фонового сервиса RabbitMQ
+                builder.Services.AddSingleton<ISignalRService, SignalRService>();
 
+                builder.Services.AddSignalR(); // Добавление SignalR
                 builder.Services.AddSession();
 
                 builder.Services.AddAuthentication("CookieAuth")
@@ -59,7 +61,7 @@ namespace WebCompBot
                 });
 
                 app.MapRazorPages();
-                app.MapControllers();
+                app.MapHub<ChatHub>("/chatHub"); // Регистрация ChatHub
 
                 app.Run();
             }

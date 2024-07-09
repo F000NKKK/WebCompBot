@@ -25,6 +25,12 @@
       "Content": "Hello, F000NK! \u003C3",
       "MessageCurrentTime": "09:07:2024 06:41:00",
       "IsUserMessage": false
+    },
+    {
+      "Id": "1$F000NK",
+      "Content": "\u041F\u0440\u0438\u0432\u0435\u0442!",
+      "MessageCurrentTime": "09:07:2024 12:30:44",
+      "IsUserMessage": true
     }
   ]
 }
